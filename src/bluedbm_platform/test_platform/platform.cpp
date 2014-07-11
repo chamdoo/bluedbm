@@ -1,4 +1,6 @@
 #include "platform.hpp"
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 extern int readPage(unsigned long long pageIdx);
 extern int writePage(unsigned long long pageIdx);
@@ -34,7 +36,7 @@ class PlatformIndication : public PlatformIndicationWrapper
 	PlatformIndication(unsigned int id) : PlatformIndicationWrapper(id){}
 
 	virtual void rawWordTest(uint64_t d) {
-		printf( "[rawWord] %llx\n",d );
+		printf( "[rawWord] %"PRIx64"\n",d );
 		fflush(stdout);
 	}
 	virtual void i2cResult(unsigned int ret) {

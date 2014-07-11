@@ -48,7 +48,6 @@ pthread_cond_t readTagCond;
 
 int readTagStatus[TAG_COUNT];
 InterfaceRequestProxy *device;
-PlatformRequestProxy* platformRequest;
 
 PortalAlloc *hostBufferAlloc;
 unsigned int *hostBuffer;
@@ -110,7 +109,7 @@ public:
 	}
 	virtual void pageWriteFail(unsigned int tag) {
 		pthread_mutex_lock(&readTagMutex);
-		fprintf(stderr, "Memread::writeFailed(%ld, %d)\n", tag, pageWriteTotal);
+		fprintf(stderr, "Memread::writeFailed(%d, %d)\n", tag, pageWriteTotal);
 		readTagStatus[tag] = 0;
 		pthread_cond_broadcast(&readTagCond);
 		pthread_mutex_unlock(&readTagMutex);
@@ -173,70 +172,54 @@ double timespec_diff_sec( timespec start, timespec end ) {
 
 */
 
-// we can use the data synchronization barrier instead of flushing the 
-// cache only because the ps7 is configured to run in buffered-write mode
-//
-// an opc2 of '4' and CRm of 'c10' encodes "CP15DSB, Data Synchronization Barrier 
-// operation". this is a legal instruction to execute in non-privileged mode (mdk)
-//
-// #define DATA_SYNC_BARRIER   __asm __volatile( "MCR p15, 0, %0, c7, c10, 4" ::  "r" (0) );
 
 int main(int argc, const char **argv)
 {
-  device = 0;
-  DmaConfigProxy *dma = 0;
-  
-  InterfaceIndication *deviceIndication = 0;
-  DmaIndication *dmaIndication = 0;
-
   fprintf(stderr, "%s %s\n", __DATE__, __TIME__);
 
   device = new InterfaceRequestProxy(IfcNames_InterfaceRequest);
-  dma = new DmaConfigProxy(IfcNames_DmaConfig);
-  platformRequest = new PlatformRequestProxy(IfcNames_PlatformRequest);
+  DmaConfigProxy *dmap = new DmaConfigProxy(IfcNames_DmaConfig);
+  DmaManager *dma = new DmaManager(dmap);
+  PlatformRequestProxy *platformRequest = new PlatformRequestProxy(IfcNames_PlatformRequest);
 
-  deviceIndication = new InterfaceIndication(IfcNames_InterfaceIndication);
-  dmaIndication = new DmaIndication(dma, IfcNames_DmaIndication);
+  InterfaceIndication *deviceIndication = new InterfaceIndication(IfcNames_InterfaceIndication);
+  DmaIndication *dmaIndication = new DmaIndication(dma, IfcNames_DmaIndication);
 
-	platformIndicationSetup();
+  platformIndicationSetup();
 
-	fprintf(stderr, "Main::allocating memory...\n");
-
-	dma->alloc(PAGE_SIZE*MAX_TAG_COUNT, &hostBufferAlloc);
-	hostBuffer = (unsigned int *)mmap(0, PAGE_SIZE*MAX_TAG_COUNT, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED, hostBufferAlloc->header.fd, 0);
-
-	pthread_t tid;
-	fprintf(stderr, "creating exec thread\n");
-	if(pthread_create(&tid, NULL,  portalExec, NULL)){
-		fprintf(stderr, "error creating exec thread\n");
-		exit(1);
-	}
-
-	dma->dCacheFlushInval(hostBufferAlloc, hostBuffer);
-	fprintf(stderr, "Main::flush and invalidate complete\n");
-
-	unsigned int ref_hostBufferAlloc = dma->reference(hostBufferAlloc);
-
-	printf( "dma->reference done\n" ); fflush(stdout);
-	sleep(1);
-	dma->addrRequest(ref_hostBufferAlloc, 1*sizeof(unsigned int));
-	printf( "dma->addrRequest done\n" ); fflush(stdout);
-	sleep(1);
-	device->setDmaHandle(ref_hostBufferAlloc);
-	printf( "device->setDmaHandle done\n" ); fflush(stdout);
-
-	pthread_mutex_init(&readTagMutex, NULL);
-	pthread_cond_init(&readTagCond, NULL);
-	rawWordManager = RawWordManager::getInstance();
-	for ( int i = 0; i < TAG_COUNT; i++ ) readTagStatus[i] = 0;
-	pageReadTotal = 0;
-	pageWriteTotal = 0;
-	maxTagUsed = 0;
-	printf( "Main started server\n" ); fflush(stdout);
-	start_timer(0);
-	//portalTrace_start();
-	platform(platformRequest);
-	//portalTrace_stop();
+  fprintf(stderr, "Main::allocating memory...\n");
+  
+  dma->alloc(PAGE_SIZE*MAX_TAG_COUNT, &hostBufferAlloc);
+  hostBuffer = (unsigned int *)mmap(0, PAGE_SIZE*MAX_TAG_COUNT, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED, hostBufferAlloc->header.fd, 0);
+  
+  pthread_t tid;
+  fprintf(stderr, "creating exec thread\n");
+  if(pthread_create(&tid, NULL,  portalExec, NULL)){
+    fprintf(stderr, "error creating exec thread\n");
+    exit(1);
+  }
+  
+  dma->dCacheFlushInval(hostBufferAlloc, hostBuffer);
+  fprintf(stderr, "Main::flush and invalidate complete\n");
+  
+  unsigned int ref_hostBufferAlloc = dma->reference(hostBufferAlloc);
+  
+  printf( "dma->reference done\n" ); fflush(stdout);
+  device->setDmaHandle(ref_hostBufferAlloc);
+  printf( "device->setDmaHandle done\n" ); fflush(stdout);
+  
+  pthread_mutex_init(&readTagMutex, NULL);
+  pthread_cond_init(&readTagCond, NULL);
+  rawWordManager = RawWordManager::getInstance();
+  for ( int i = 0; i < TAG_COUNT; i++ ) readTagStatus[i] = 0;
+  pageReadTotal = 0;
+  pageWriteTotal = 0;
+  maxTagUsed = 0;
+  printf( "Main started server\n" ); fflush(stdout);
+  start_timer(0);
+  //portalTrace_start();
+  platform(platformRequest);
+  //portalTrace_stop();
 
   uint64_t cycles = lap_timer(0);
   uint64_t read_beats = dma->show_mem_stats(ChannelType_Write);
@@ -246,14 +229,5 @@ int main(int argc, const char **argv)
   fprintf(stderr, "memory read utilization (beats/cycle): %f\n", read_util);
   fprintf(stderr, "memory write utilization (beats/cycle): %f\n", write_util);
   
-  /*
-  MonkitFile("perf.monkit")
-    .setHwCycles(cycles)
-    .setReadBwUtil(read_util)
-    .setWriteBwUtil(write_util)
-    .writeFile();
-
-  sleep(2);
-  */
   exit(0);
 }
