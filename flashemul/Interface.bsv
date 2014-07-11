@@ -25,11 +25,14 @@ import FIFOF::*;
 import FIFO::*;
 import Connectable::*;
 import BRAMFIFO::*;
+import ClientServer::*;
+import GetPut::*;
 
 import PortalMemory::*;
-import Dma::*;
 import MemreadEngine::*;
 import MemwriteEngine::*;
+import MemTypes::*;
+import Pipe::*;
 
 import PlatformInterfaces::*;
 //import BlueDBMPlatform::*;
@@ -72,7 +75,9 @@ endinterface
 interface Interface;
 	interface InterfaceRequest request;
 	interface FlashControllerIfc flash;
-	interface BlueDBMHostIfc host;
+        interface BlueDBMHostIfc host;
+	interface ObjectReadClient#(64) dmaReadClient;
+	interface ObjectWriteClient#(64) dmaWriteClient;
 endinterface
 
 interface InterfaceIndication;
@@ -83,30 +88,22 @@ interface InterfaceIndication;
    method Action writeRawWord(Bit#(64) data);
 endinterface
 
-module mkInterfaceRequest#(
-			InterfaceIndication indication,
-			PlatformIndication platformIndication,
-			ObjectReadServer#(64) dma_read_server,
-			ObjectWriteServer#(64) dma_write_server)(Interface);
+module mkInterface#(InterfaceIndication indication,
+		    PlatformIndication platformIndication)(Interface);
 
 	Integer pageSize = 8192;
 
+	MemreadEngine#(64,1) re <- mkMemreadEngine;
+	MemwriteEngine#(64,1) we <- mkMemwriteEngine;
+
 	let readFifoBuf <- mkSizedBRAMFIFO(2048);
-	let readFifo <- mkSizedFIFOF(256);
 	rule relayreadfifo;
-		readFifoBuf.enq(readFifo.first);
-		readFifo.deq;
+	        let v <- toGet(re.dataPipes[0]).get;
+		readFifoBuf.enq(v);
 	endrule
 
-	let writeFifo <- mkSizedFIFOF(128);
-
-	MemreadEngine#(64) re <- mkMemreadEngine(1, readFifo);
-	MemwriteEngine#(64) we <- mkMemwriteEngine(4, writeFifo);
 
 	Reg#(ObjectPointer) hostDmaHandle <- mkReg(0);
-
-	mkConnection(re.dmaClient,dma_read_server);
-	mkConnection(we.dmaClient,dma_write_server);
 
    /*
    rule start(iterCnt > 0);
@@ -146,7 +143,7 @@ module mkInterfaceRequest#(
 		Bit#(ObjectOffsetSize) absoffset = offset + fromInteger(pageSize)*extend(nextTag);
 		//indication.hexdump(0,nextTag);
 		
-		we.start(hostDmaHandle, absoffset, 32*4, 32*4); //FIXME <- expecting 16 * 64bit bursts.
+		we.writeServers[0].request.put(MemengineCmd{pointer:hostDmaHandle, base:absoffset, len:32*4, burstLen:32*4}); //FIXME <- expecting 16 * 64bit bursts.
 		if ( offset + 16*8 >= fromInteger(pageSize) ) begin
 			writeBufferOffset[nextTag] <= 0;
 			indication.pageReadDone(extend(nextTag));
@@ -159,14 +156,14 @@ module mkInterfaceRequest#(
 		Bit#(64) data = writeBuffer[tag].first;
 		writeBuffer[tag].deq;
 		writeFlushCounter <= writeFlushCounter - 1;
-		writeFifo.enq(data);
+		we.dataPipes[0].enq(data);
 		//indication.hexdump(1,extend(writeFlushCounter));
 	endrule
 	rule finishWrite;
-		let rv1 <- we.finish;
+		let rv1 <- we.writeServers[0].response.get;
 	endrule
 	rule finishRead;
-		let rv1 <- re.finish;
+		let rv1 <- re.readServers[0].response.get;
 	endrule
 
 	FIFO#(Bit#(64)) rawWordInQ <- mkSizedFIFO(32);
@@ -231,7 +228,7 @@ module mkInterfaceRequest#(
 	method Action readPage(Bit#(8) tag);
 		Bit#(ObjectOffsetSize) absoffset = fromInteger(pageSize)*extend(tag);
 		if ( tag < 64 ) begin
-			re.start(hostDmaHandle, absoffset, fromInteger(pageSize), 16*4);
+			re.readServers[0].request.put(MemengineCmd{pointer:hostDmaHandle, base:absoffset, len:fromInteger(pageSize), burstLen:16*4});
 			writeTagQ.enq(truncate(bluedbmCommand.first.tag));
 		end else begin
 			indication.hexdump(32'hdead, extend(tag));
@@ -268,4 +265,6 @@ module mkInterfaceRequest#(
 
 	interface PlatformIndication indication = platformIndication;
 	endinterface
+       interface ObjectReadClient dmaReadClient = re.dmaClient;
+       interface ObjectWriteClient dmaWriteClient = we.dmaClient;
 endmodule

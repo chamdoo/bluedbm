@@ -11,7 +11,7 @@ include ../config/Makefile.emultest
 
 XBSVDIR=../../xbsv
 BOARD=vc707
-TOP=$(PINS)Pcie$(Dma)Top
+TOP=PcieTopDbm
 MKTOP=mkPcieTop
 
 .PHONY: $(projectnames)
