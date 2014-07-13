@@ -1,0 +1,32 @@
+BLUEDBM_DIR=$(PWD)/..
+BLUEDBM_PLATFORMDIR=$(BLUEDBM_DIR)/src/bluedbm_platform/test_platform/
+BLUEDBM_FLASHDIR=$(BLUEDBM_DIR)/src/hardware_controller/flash/emulated/
+BLUEDBM_DRAMDIR=$(BLUEDBM_DIR)/src/hardware_controller/dram/raw_64/
+IMPORTDIR=/scratch/jca/importedstuff
+
+#BSVFILES += Interface.bsv Top.bsv 
+BSVFILES += $(BLUEDBM_PLATFORMDIR)/BlueDBMPlatform.bsv \
+	$(BLUEDBM_PLATFORMDIR)/PlatformInterfaces.bsv \
+	$(BLUEDBM_FLASHDIR)/EmulatedFlash.bsv \
+	$(BLUEDBM_DRAMDIR)/DRAMController.bsv
+
+ADIR= $(BLUEDBM_DIR)/../xbsv/generated/xilinx/vc707/aurora_64b66b_0
+
+XBSVFLAGS += --verilog $(IMPORTDIR)/ddr3_v1_7 \
+	--verilog $(ADIR)/ \
+	--verilog $(ADIR)/aurora_64b66b_0/example_design/ \
+	--verilog $(ADIR)/aurora_64b66b_0/example_design/clock_module/ \
+	--verilog $(ADIR)/aurora_64b66b_0/example_design/traffic_gen_and_check/ \
+	--verilog $(ADIR)/aurora_64b66b_0/example_design/gt/ \
+	--verilog $(ADIR)/aurora_64b66b_0/example_design/cc_manager/ \
+	--constraint $(BLUEDBM_DIR)/../xbsv/xilinx/constraints/vc707_ddr3.xdc \
+	--xci $(ADIR)/aurora_64b66b_0.xci \
+	--constraint $(BLUEDBM_DIR)/../xbsv/xilinx/constraints/vc707_aurora.xdc \
+	--constraint $(BLUEDBM_DIR)/xilinx/constraints/vc707_aurora_625.xdc \
+	--constraint $(BLUEDBM_DIR)/xilinx/constraints/vc707_i2c.xdc
+
+XBSVFLAGS += --clib rt
+CPPFILES += $(BLUEDBM_PLATFORMDIR)/platform.cpp
+
+
+# import_ip -files {/home/wjun/bluedbm_work/xbsv/xilinx/aurora_64b66b_v7/aurora_64b66b_0.xci} -name aurora_64b66b_0
