@@ -14,4 +14,9 @@ BOARD=vc707
 TOP=PcieTopDbm.bsv
 MKTOP=mkPcieTop
 
+.PHONY:
+prebuild::
+	cp ../xilinx/$(BOARD)-ddr3-mig.prj $(BOARD)
+	(cd $(BOARD); vivado -mode batch -source ../synth-ip.tcl)
+
 include $(XBSVDIR)/Makefile.common
