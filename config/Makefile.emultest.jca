@@ -13,16 +13,7 @@ BSVFILES += $(BLUEDBM_PLATFORMDIR)/BlueDBMPlatform.bsv \
 ADIR= $(BLUEDBM_DIR)/../xbsv/generated/xilinx/vc707/aurora_64b66b_0
 
 XBSVFLAGS += --verilog $(IMPORTDIR)/ddr3_v1_7 \
-	--verilog $(ADIR)/ \
-	--verilog $(ADIR)/aurora_64b66b_0/example_design/ \
-	--verilog $(ADIR)/aurora_64b66b_0/example_design/clock_module/ \
-	--verilog $(ADIR)/aurora_64b66b_0/example_design/traffic_gen_and_check/ \
-	--verilog $(ADIR)/aurora_64b66b_0/example_design/gt/ \
-	--verilog $(ADIR)/aurora_64b66b_0/example_design/cc_manager/ \
 	--constraint $(BLUEDBM_DIR)/../xbsv/xilinx/constraints/vc707_ddr3.xdc \
-	--xci $(ADIR)/aurora_64b66b_0.xci \
-	--constraint $(BLUEDBM_DIR)/../xbsv/xilinx/constraints/vc707_aurora.xdc \
-	--constraint $(BLUEDBM_DIR)/xilinx/constraints/vc707_aurora_625.xdc \
 	--constraint $(BLUEDBM_DIR)/xilinx/constraints/vc707_i2c.xdc
 
 XBSVFLAGS += --clib rt

@@ -22,7 +22,9 @@ module mkBlueDBMPlatform#(
 	FlashControllerIfc flash, 
 	BlueDBMHostIfc host, 
 	DRAMControllerIfc dram, 
+/* removed auroras
 	Vector#(AuroraPorts, AuroraIfc) auroras, 
+*/
 	Vector#(I2C_Count, I2C_User) i2cs
 	) (BlueDBMPlatformIfc);
 	
@@ -62,6 +64,7 @@ module mkBlueDBMPlatform#(
 		indication.i2cResult(zeroExtend(response));
 	endrule
 
+/* remove Aurora -- jca
 	Clock aurora_clk = auroras[0].clk;
 	Reset aurora_rst = auroras[0].rst;
 
@@ -71,13 +74,13 @@ module mkBlueDBMPlatform#(
 
 	SyncFIFOIfc#(Bit#(64)) auroraTx <- mkSyncFIFOFromCC(16, aurora_clk);
 	Reg#(Bit#(16)) txCount <- mkReg(0);
-	/*
+	/ *
 	rule agsgsfd(txThr > 0);
 		txThr <= txThr - 1;
 	endrule
-	*/
+	* /
 
-	rule sendAuroraTx (txCount < 2048 && platformStarted /*&& txThr == 0*/);
+	rule sendAuroraTx (txCount < 2048 && platformStarted / *&& txThr == 0* /);
 		txCount <= txCount + 1;
 
 		//txThr <= 128;
@@ -148,6 +151,7 @@ module mkBlueDBMPlatform#(
 
 		indication.rawWordTest({32'hdeadbeef,0,auroraRx.first[15:0]});
 	endrule
+*/
 
 
 	Clock clk <- exposeCurrentClock;
@@ -281,6 +285,7 @@ module mkBlueDBMPlatform#(
 		method Action start(Bit#(32) dummy);
 			platformStartQ.enq(True);
 		endmethod
+/* remove aurora
 		method Action resetAurora(Bit#(32) dummy);
 			auroras[1].auroraRst.assertReset;
 		endmethod
@@ -290,5 +295,6 @@ module mkBlueDBMPlatform#(
 
 			indication.rawWordTest({0, aurora0err, aurora1err});
 		endmethod
+*/
 	endinterface
 endmodule
