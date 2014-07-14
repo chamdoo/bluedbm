@@ -31,9 +31,9 @@
 3. when copying over a new version of xbsv 
 	(1) Copy ddr3 related files 
 	(2) Copy and flatten ddr3_v1_7 from
-	BLUESPECDIR/board_support/bluenoc/xilinx/VC707/verilog/ddr3_v1_7/ 
+	BLUESPECDIR/lib/board_support/bluenoc/xilinx/VC707/verilog/ddr3_v1_7/ 
 	(3) Copy DDR3_synthesis_constraints from
-	BLUESPECDIR/board_support/bluenoc/xilinx/VC707/ to
+	BLUESPECDIR/lib/board_support/bluenoc/xilinx/VC707/ to
 	xbsv/constraints/vc707_ddr3.xdc . Edit vc707_ddr3.xdc such that the
 	contraint names fit pins_* instead of DDR3_*
 
