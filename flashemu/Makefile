@@ -15,8 +15,8 @@ Dma = DmaF
 PINS = Std
 
 include ../config/Makefile.emultest.jca
-XBSVFLAGS += --bscflags ' -D SYNTH_ARG="sys_clk_200mhz,pci_sys_reset_n"'
 XBSVFLAGS += -D PinType=BlueDBMTopPins
+XBSVFLAGS += -D IMPORT_HOSTIF
 
 include $(XBSVDIR)/Makefile.common
 
