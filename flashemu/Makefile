@@ -20,5 +20,7 @@ XBSVFLAGS += -D IMPORT_HOSTIF
 
 include $(XBSVDIR)/Makefile.common
 
+ifneq ($(BOARD), bluesim)
 prebuild::
 	(cd $(BOARD); vivado -mode batch -source ../synth-ip.tcl)
+endif

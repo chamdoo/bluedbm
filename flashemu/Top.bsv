@@ -75,21 +75,6 @@ module mkPortalTop#(HostType host) (PortalTop#(addrWidth, 64, BlueDBMTopPins, Nu
 	    Add#(e__, c__, 40),
 	    Add#(f__, addrWidth, 40));
 
-   Clock defaultClock <- exposeCurrentClock();
-   Reset defaultReset <- exposeCurrentReset();
-Clock sys_clk = host.tsys_clk_200mhz;
-Reset pci_sys_reset_n = host.tpci_sys_reset_n;
-
-   Vector#(AuroraPorts,Clock) gtx_clk_p;
-   Vector#(AuroraPorts,Clock) gtx_clk_n;
-   Vector#(AuroraPorts, B2C1) pclk;
-   Vector#(AuroraPorts, B2C1) nclk;
-   for(Integer i = 0; i < valueOf(AuroraPorts); i=i+1) begin
-       pclk[i] <- mkB2C1();
-       gtx_clk_p[i] = pclk[i].c;
-       nclk[i] <- mkB2C1();
-       gtx_clk_n[i] = nclk[i].c;
-   end
    PlatformIndicationProxy platformIndicationProxy <- mkPlatformIndicationProxy(PlatformIndication);
    InterfaceIndicationProxy interfaceIndicationProxy <- mkInterfaceIndicationProxy(InterfaceIndication);
    Interface interfacE <- mkInterface(interfaceIndicationProxy.ifc, platformIndicationProxy.ifc);
@@ -102,9 +87,30 @@ Reset pci_sys_reset_n = host.tpci_sys_reset_n;
    MemServer#(addrWidth, 64, NumMasters)   dma <- mkMemServer(dmaIndicationProxy.ifc, readClients, writeClients);
    DmaConfigWrapper dmaRequestWrapper <- mkDmaConfigWrapper(DmaConfig,dma.request);
 
+
+`ifdef BSIM
+   DRAMControllerIfc dramController <- mkDRAMControllerBSIM;
+   Vector#(I2C_Count,I2C_User) i2c = replicate(?);
+`else
    //////////////// test DDR3 stuff start //////////////
    //Clock sys_clk <- mkClockIBUFDS(sys_clk_200mhz, sys_reset_200mhz);
+
+   Vector#(AuroraPorts,Clock) gtx_clk_p;
+   Vector#(AuroraPorts,Clock) gtx_clk_n;
+   Vector#(AuroraPorts, B2C1) pclk;
+   Vector#(AuroraPorts, B2C1) nclk;
+   for(Integer i = 0; i < valueOf(AuroraPorts); i=i+1) begin
+       pclk[i] <- mkB2C1();
+       gtx_clk_p[i] = pclk[i].c;
+       nclk[i] <- mkB2C1();
+       gtx_clk_n[i] = nclk[i].c;
+   end
    
+   Clock defaultClock <- exposeCurrentClock();
+   Reset defaultReset <- exposeCurrentReset();
+   Clock sys_clk = host.tsys_clk_200mhz;
+   Reset pci_sys_reset_n = host.tpci_sys_reset_n;
+
    ClockGenerator7Params clk_params = defaultValue();
    clk_params.clkin1_period     = 5.000;       // 200 MHz reference
    clk_params.clkin_buffer      = False;       // necessary buffer is instanced above
@@ -160,8 +166,9 @@ Reset pci_sys_reset_n = host.tpci_sys_reset_n;
 	Vector#(I2C_Count,I2C_User) i2c;
 	I2C i2c0 <- mkI2C(416); //125/417 = 299khz/3 = 100khz i2c clk
 	i2c[0] = i2c0.user;
+`endif
 	
-	BlueDBMPlatformIfc bluedbm <- mkBlueDBMPlatform(interfacE.flash, interfacE.host, dramController, /*auroras,*/ i2c);
+   BlueDBMPlatformIfc bluedbm <- mkBlueDBMPlatform(interfacE.flash, interfacE.host, dramController, /*auroras,*/ i2c);
    
    PlatformRequestWrapper platformRequestWrapper <- mkPlatformRequestWrapper(PlatformRequest, bluedbm.request);
    
@@ -182,6 +189,8 @@ Reset pci_sys_reset_n = host.tpci_sys_reset_n;
    interface masters = dma.masters;
    interface leds = default_leds;
 
+
+`ifndef BSIM
    //interface DDR3_Pins_VC707 pins = ddr3_ctrl.ddr3;
    interface BlueDBMTopPins pins;
 	   interface DDR3_Pins_VC707 ddr3 = ddr3_ctrl.ddr3;
@@ -206,5 +215,6 @@ Reset pci_sys_reset_n = host.tpci_sys_reset_n;
 	   interface deleteme_unused_clock = defaultClock;
 	   interface deleteme_unused_reset = defaultReset;
    endinterface
+`endif
 
 endmodule

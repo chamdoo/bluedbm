@@ -17,6 +17,22 @@ interface DRAMControllerIfc;
 	interface Reset ddr_rst_n;
 endinterface
 
+module mkDRAMControllerBSIM (DRAMControllerIfc);
+
+	Clock clk <- exposeCurrentClock;
+	Reset rst_n <- exposeCurrentReset;
+
+	method Action write(Bit#(64) addr, Bit#(512) data, Bit#(7) bytes);
+	endmethod
+	method Action readReq(Bit#(64) addr, Bit#(7) bytes);
+	endmethod
+	method ActionValue#(Bit#(512)) read;
+	   return ?;
+	endmethod
+	interface ddr_clk = clk;
+	interface ddr_rst_n = rst_n;
+endmodule
+
 module mkDRAMController#(DDR3_User_VC707 user) (DRAMControllerIfc);
 	Clock clk <- exposeCurrentClock;
 	Reset rst_n <- exposeCurrentReset;
