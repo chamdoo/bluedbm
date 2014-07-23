@@ -65,22 +65,22 @@ interface BlueDBMHostIfc;
 endinterface
 ///////////////////////////////////////////
 
-interface InterfaceRequest;
+interface FlashEmuRequest;
 	method Action setDmaHandle(Bit#(32) hostHandle);
 	method Action readPage(Bit#(64) pageIdx, Bit#(32) tag);
 	method Action writePage(Bit#(64) pageIdx, Bit#(32) tag);
 	method Action readRawWord(Bit#(64) data);
 endinterface
 
-interface Interface;
-	interface InterfaceRequest request;
+interface FlashEmu;
+	interface FlashEmuRequest request;
 	interface FlashControllerIfc flash;
         interface BlueDBMHostIfc host;
 	interface ObjectReadClient#(64) dmaReadClient;
 	interface ObjectWriteClient#(64) dmaWriteClient;
 endinterface
 
-interface InterfaceIndication;
+interface FlashEmuIndication;
    method Action pageReadDone(Bit#(32) tag);
    method Action pageWriteDone(Bit#(32) tag);
    method Action pageWriteFail(Bit#(32) tag);
@@ -88,8 +88,8 @@ interface InterfaceIndication;
    method Action writeRawWord(Bit#(64) data);
 endinterface
 
-module mkInterface#(InterfaceIndication indication,
-		    PlatformIndication platformIndication)(Interface);
+module mkFlashEmu#(FlashEmuIndication indication,
+		    PlatformIndication platformIndication)(FlashEmu);
 
 	Integer pageSize = 8192;
 
@@ -172,7 +172,7 @@ module mkInterface#(InterfaceIndication indication,
 	FIFO#(Bit#(8)) writeTagQ <- mkSizedFIFO(64);
 	Reg#(Bit#(32)) curWriteCount <- mkReg(0);
    
-	interface InterfaceRequest request;
+	interface FlashEmuRequest request;
 	method Action setDmaHandle(Bit#(32) hostHandle);
 		hostDmaHandle <= hostHandle;
 	endmethod

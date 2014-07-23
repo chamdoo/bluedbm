@@ -3,7 +3,7 @@ import Clocks::*;
 import Vector::*;
 
 import PlatformInterfaces::*;
-import Interface::*;
+import FlashEmu::*;
 
 import I2CSimple::*;
 

@@ -31,8 +31,8 @@
 #include <time.h>
 #include "DmaConfigProxy.h"
 #include "GeneratedTypes.h"
-#include "InterfaceIndicationWrapper.h"
-#include "InterfaceRequestProxy.h"
+#include "FlashEmuIndicationWrapper.h"
+#include "FlashEmuRequestProxy.h"
 #include "PlatformRequestProxy.h"
 
 #include "rawWordManager.h"
@@ -47,7 +47,7 @@ pthread_mutex_t readTagMutex;
 pthread_cond_t readTagCond;
 
 int readTagStatus[TAG_COUNT];
-InterfaceRequestProxy *device;
+FlashEmuRequestProxy *device;
 
 PortalAlloc *hostBufferAlloc;
 unsigned int *hostBuffer;
@@ -94,10 +94,10 @@ int readPage(unsigned long long pageIdx) {
 RawWordManager* rawWordManager;
 
 int maxTagUsed;
-class InterfaceIndication : public InterfaceIndicationWrapper
+class FlashEmuIndication : public FlashEmuIndicationWrapper
 {
 public:
-  InterfaceIndication(unsigned int id) : InterfaceIndicationWrapper(id){}
+  FlashEmuIndication(unsigned int id) : FlashEmuIndicationWrapper(id){}
 
 	virtual void pageWriteDone(unsigned int tag) {
 		pthread_mutex_lock(&readTagMutex);
@@ -177,12 +177,12 @@ int main(int argc, const char **argv)
 {
   fprintf(stderr, "%s %s\n", __DATE__, __TIME__);
 
-  device = new InterfaceRequestProxy(IfcNames_InterfaceRequest);
+  device = new FlashEmuRequestProxy(IfcNames_FlashEmuRequest);
   DmaConfigProxy *dmap = new DmaConfigProxy(IfcNames_DmaConfig);
   DmaManager *dma = new DmaManager(dmap);
   PlatformRequestProxy *platformRequest = new PlatformRequestProxy(IfcNames_PlatformRequest);
 
-  InterfaceIndication *deviceIndication = new InterfaceIndication(IfcNames_InterfaceIndication);
+  FlashEmuIndication *deviceIndication = new FlashEmuIndication(IfcNames_FlashEmuIndication);
   DmaIndication *dmaIndication = new DmaIndication(dma, IfcNames_DmaIndication);
 
   platformIndicationSetup();

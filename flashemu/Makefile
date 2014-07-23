@@ -7,9 +7,9 @@ XBSVDIR=../../xbsv
 
 include ../config/Makefile.list
 
-S2H = InterfaceRequest PlatformRequest
-H2S = InterfaceIndication PlatformIndication
-BSVFILES = Interface.bsv Top.bsv
+S2H = FlashEmuRequest PlatformRequest
+H2S = FlashEmuIndication PlatformIndication
+BSVFILES = FlashEmu.bsv Top.bsv
 CPPFILES=main.cpp rawWordManager.cpp
 Dma = DmaF
 PINS = Std

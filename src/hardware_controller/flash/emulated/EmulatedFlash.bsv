@@ -5,7 +5,7 @@ import Clocks::*;
 import Vector::*;
 
 import DRAMController::*;
-import Interface::*;
+import FlashEmu::*;
 
 interface FlashInterfaceIfc;
 	method Action readPage(Bit#(5) bus, Bit#(5) chip, Bit#(16) block, Bit#(8) page, Bit#(8) tag);
