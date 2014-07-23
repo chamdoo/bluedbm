@@ -40,8 +40,8 @@ class PlatformIndication : public PlatformIndicationWrapper
 		fflush(stdout);
 	}
 	virtual void i2cResult(unsigned int ret) {
-		//printf( "[i2c0] : %x\n", ret );
-		//fflush(stdout);
+		printf( "[i2c0] : %x\n", ret );
+		fflush(stdout);
 
 		i2cReadData = (unsigned char)ret;
 		i2cReadDone = true;

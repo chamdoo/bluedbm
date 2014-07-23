@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <monkit.h>
-#include <semaphore.h>
 #include "StdDmaIndication.h"
 
 #include <time.h>
@@ -47,7 +46,7 @@ pthread_mutex_t readTagMutex;
 pthread_cond_t readTagCond;
 
 int readTagStatus[TAG_COUNT];
-FlashEmuRequestProxy *device;
+FlashEmuRequestProxy *flashEmu;
 
 PortalAlloc *hostBufferAlloc;
 unsigned int *hostBuffer;
@@ -64,7 +63,7 @@ int writePage(unsigned long long pageIdx) {
 			if ( readTagStatus[i] == 0 ) {
 				readTagStatus[i] = PAGE_SIZE;
 				//printf( "sending read %llx %d\n", pageIdx, i );
-				device->writePage(pageIdx,i);
+				flashEmu->writePage(pageIdx,i);
 				pthread_mutex_unlock(&readTagMutex);
 				return i;
 			}
@@ -81,7 +80,7 @@ int readPage(unsigned long long pageIdx) {
 			if ( readTagStatus[i] == 0 ) {
 				readTagStatus[i] = PAGE_SIZE;
 				//printf( "sending read %llx %d\n", pageIdx, i );
-				device->readPage(pageIdx,i);
+				flashEmu->readPage(pageIdx,i);
 				pthread_mutex_unlock(&readTagMutex);
 				return i;
 			}
@@ -175,16 +174,21 @@ double timespec_diff_sec( timespec start, timespec end ) {
 
 int main(int argc, const char **argv)
 {
+  DmaConfigProxy *dmap = 0;
+  DmaIndication  *dmaIndication = 0;
+  flashEmu = 0;
+  FlashEmuIndication *flashEmuIndication = 0;
+  PlatformRequestProxy *platformRequest = 0;
+
   fprintf(stderr, "%s %s\n", __DATE__, __TIME__);
 
-  device = new FlashEmuRequestProxy(IfcNames_FlashEmuRequest);
-  DmaConfigProxy *dmap = new DmaConfigProxy(IfcNames_DmaConfig);
+  platformRequest = new PlatformRequestProxy(IfcNames_PlatformRequest);
+  flashEmu = new FlashEmuRequestProxy(IfcNames_FlashEmuRequest);
+  dmap = new DmaConfigProxy(IfcNames_DmaConfig);
   DmaManager *dma = new DmaManager(dmap);
-  PlatformRequestProxy *platformRequest = new PlatformRequestProxy(IfcNames_PlatformRequest);
 
-  FlashEmuIndication *deviceIndication = new FlashEmuIndication(IfcNames_FlashEmuIndication);
-  DmaIndication *dmaIndication = new DmaIndication(dma, IfcNames_DmaIndication);
-
+  flashEmuIndication = new FlashEmuIndication(IfcNames_FlashEmuIndication);
+  dmaIndication = new DmaIndication(dma, IfcNames_DmaIndication);
   platformIndicationSetup();
 
   fprintf(stderr, "Main::allocating memory...\n");
@@ -202,11 +206,13 @@ int main(int argc, const char **argv)
   dma->dCacheFlushInval(hostBufferAlloc, hostBuffer);
   fprintf(stderr, "Main::flush and invalidate complete\n");
   
+  sleep(100);
+
   unsigned int ref_hostBufferAlloc = dma->reference(hostBufferAlloc);
   
   printf( "dma->reference done\n" ); fflush(stdout);
-  device->setDmaHandle(ref_hostBufferAlloc);
-  printf( "device->setDmaHandle done\n" ); fflush(stdout);
+  flashEmu->setDmaHandle(ref_hostBufferAlloc);
+  printf( "flashEmu->setDmaHandle done\n" ); fflush(stdout);
   
   pthread_mutex_init(&readTagMutex, NULL);
   pthread_cond_init(&readTagCond, NULL);

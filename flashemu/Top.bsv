@@ -77,20 +77,20 @@ module mkPortalTop#(HostType host) (PortalTop#(addrWidth, 64, BlueDBMTopPins, Nu
 
    PlatformIndicationProxy platformIndicationProxy <- mkPlatformIndicationProxy(PlatformIndication);
    FlashEmuIndicationProxy interfaceIndicationProxy <- mkFlashEmuIndicationProxy(FlashEmuIndication);
-   FlashEmu interfacE <- mkFlashEmu(interfaceIndicationProxy.ifc, platformIndicationProxy.ifc);
-   FlashEmuRequestWrapper interfaceRequestWrapper <- mkFlashEmuRequestWrapper(FlashEmuRequest,interfacE.request);
+   FlashEmu flashEmu <- mkFlashEmu(interfaceIndicationProxy.ifc, platformIndicationProxy.ifc);
+   FlashEmuRequestWrapper interfaceRequestWrapper <- mkFlashEmuRequestWrapper(FlashEmuRequest,flashEmu.request);
 	
 
    DmaIndicationProxy dmaIndicationProxy <- mkDmaIndicationProxy(DmaIndication);
-   Vector#(NumMasters, ObjectReadClient#(64))   readClients = cons(interfacE.dmaReadClient, nil);
-   Vector#(NumMasters, ObjectWriteClient#(64)) writeClients = cons(interfacE.dmaWriteClient, nil);
+   Vector#(NumMasters, ObjectReadClient#(64))   readClients = cons(flashEmu.dmaReadClient, nil);
+   Vector#(NumMasters, ObjectWriteClient#(64)) writeClients = cons(flashEmu.dmaWriteClient, nil);
    MemServer#(addrWidth, 64, NumMasters)   dma <- mkMemServer(dmaIndicationProxy.ifc, readClients, writeClients);
    DmaConfigWrapper dmaRequestWrapper <- mkDmaConfigWrapper(DmaConfig,dma.request);
 
 
 `ifdef BSIM
    DRAMControllerIfc dramController <- mkDRAMControllerBSIM;
-   Vector#(I2C_Count,I2C_User) i2c = replicate(?);
+   Vector#(I2C_Count,I2C_User) i2c = ?;
 `else
    //////////////// test DDR3 stuff start //////////////
    //Clock sys_clk <- mkClockIBUFDS(sys_clk_200mhz, sys_reset_200mhz);
@@ -161,15 +161,15 @@ module mkPortalTop#(HostType host) (PortalTop#(addrWidth, 64, BlueDBMTopPins, Nu
 */
 
 	//////////////////////////// Aurora End
-
-	/////FIXME: Change it to use BSV's vanilla distributed I2C
-	Vector#(I2C_Count,I2C_User) i2c;
-	I2C i2c0 <- mkI2C(416); //125/417 = 299khz/3 = 100khz i2c clk
-	i2c[0] = i2c0.user;
-`endif
-	
-   BlueDBMPlatformIfc bluedbm <- mkBlueDBMPlatform(interfacE.flash, interfacE.host, dramController, /*auroras,*/ i2c);
    
+   /////FIXME: Change it to use BSV's vanilla distributed I2C
+   Vector#(I2C_Count,I2C_User) i2c;
+   I2C i2c0 <- mkI2C(416); //125/417 = 299khz/3 = 100khz i2c clk
+   i2c[0] = i2c0.user;
+   
+`endif
+   
+   BlueDBMPlatformIfc bluedbm <- mkBlueDBMPlatform(flashEmu.flash, flashEmu.host, dramController, /*auroras,*/ i2c);
    PlatformRequestWrapper platformRequestWrapper <- mkPlatformRequestWrapper(PlatformRequest, bluedbm.request);
    
    Vector#(6,StdPortal) portals;
