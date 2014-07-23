@@ -12,7 +12,7 @@ BSVFILES += $(BLUEDBM_PLATFORMDIR)/BlueDBMPlatform.bsv \
 
 ADIR= $(BLUEDBM_DIR)/../xbsv/generated/xilinx/vc707/aurora_64b66b_0
 
-XBSVFLAGS += --verilog $(IMPORTDIR)/ddr3_v1_7 \
+XBSVFLAGS += \
 	--constraint $(BLUEDBM_DIR)/../xbsv/xilinx/constraints/vc707_ddr3.xdc \
 	--constraint $(BLUEDBM_DIR)/xilinx/constraints/vc707_i2c.xdc
 
